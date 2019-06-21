@@ -26,9 +26,17 @@ $this->params['breadcrumbs'][] = $this->title;
         'columns' => [
             ['class' => 'yii\grid\SerialColumn'],
 
-            'id',
             'titulo',
             'anyo',
+	        [
+                'attribute' => 'total',
+                'value' => function ($model, $key, $index, $column) {
+                    $di = new DateInterval($model->total);
+                    $minutos = $di->h * 60 + $di->i;
+                    $segundos = $di->s;
+                    return "$minutos:$segundos";
+                }
+            ],
 
             ['class' => 'yii\grid\ActionColumn'],
         ],

@@ -4,7 +4,6 @@ namespace app\models;
 
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use app\models\Albumes;
 
 /**
  * AlbumesSearch represents the model behind the search form of `app\models\Albumes`.
@@ -20,7 +19,13 @@ class AlbumesSearch extends Albumes
             [['id'], 'integer'],
             [['titulo'], 'safe'],
             [['anyo'], 'number'],
+            [['total'], 'safe'],
         ];
+    }
+
+    public function attributes()
+    {
+        return array_merge(parent::attributes(), ['total']);
     }
 
     /**
@@ -33,7 +38,7 @@ class AlbumesSearch extends Albumes
     }
 
     /**
-     * Creates data provider instance with search query applied
+     * Creates data provider instance with search query applied.
      *
      * @param array $params
      *
@@ -41,13 +46,18 @@ class AlbumesSearch extends Albumes
      */
     public function search($params)
     {
-        $query = Albumes::find();
+        $query = Albumes::findWithTotal();
 
         // add conditions that should always apply here
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
         ]);
+
+        $dataProvider->sort->attributes['total'] = [
+            'asc' => ['total' => SORT_ASC],
+            'desc' => ['total' => SORT_DESC],
+        ];
 
         $this->load($params);
 
@@ -56,7 +66,7 @@ class AlbumesSearch extends Albumes
             // $query->where('0=1');
             return $dataProvider;
         }
-
+        return $dataProvider;
         // grid filtering conditions
         $query->andFilterWhere([
             'id' => $this->id,
@@ -65,6 +75,26 @@ class AlbumesSearch extends Albumes
 
         $query->andFilterWhere(['ilike', 'titulo', $this->titulo]);
 
+        if ($this->total !== '') {
+            $res = mb_split(':', $this->total);
+
+            if (count($res) == 2) {
+                [$minutos, $segundos] = $res;
+                $minutos = $minutos ?: '0';
+                $segundos = $segundos ?: '0';
+                if ($minutos > 60) {
+                    $horas = (int) ($minutos / 60);
+                    $minutos = $minutos % 60;
+                    $intervalo = "PT${horas}H${minutos}M${segundos}S";
+                } else {
+                    $horas = 0;
+                    $intervalo = "PT${minutos}M${segundos}S";
+                }
+                $query->andFilterHaving(['SUM(t.duracion)' => $intervalo]);
+            } else {
+                $query->where('1 = 0');
+            }
+        }
         return $dataProvider;
     }
 }

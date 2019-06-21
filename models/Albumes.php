@@ -16,6 +16,8 @@ use Yii;
  */
 class Albumes extends \yii\db\ActiveRecord
 {
+	private $_total = null;
+
     /**
      * {@inheritdoc}
      */
@@ -62,5 +64,27 @@ class Albumes extends \yii\db\ActiveRecord
     public function getTemas()
     {
         return $this->hasMany(Temas::className(), ['id' => 'tema_id'])->viaTable('albumes_temas', ['album_id' => 'id']);
+    }
+
+public function getTotal()
+    {
+        if ($this->_total === null) {
+            $this->_total = $this->getTemas()->sum('duracion');
+        }
+
+        return $this->_total;
+    }
+
+    public function setTotal($_total)
+    {
+        $this->_total = $_total;
+    }
+
+    public static function findWithTotal()
+    {
+        return static::find()
+            ->select(['albumes.*', "coalesce(sum(t.duracion), 'PT0M0S') AS total"])
+            ->joinWith('temas t')
+            ->groupBy('albumes.id');
     }
 }
